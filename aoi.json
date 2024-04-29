@@ -1,0 +1,145 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "accounts_chris_openai_east_name": {
+            "defaultValue": "chris-openai-east",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.CognitiveServices/accounts",
+            "apiVersion": "2023-10-01-preview",
+            "name": "[parameters('accounts_chris_openai_east_name')]",
+            "location": "eastus",
+            "sku": {
+                "name": "S0"
+            },
+            "kind": "OpenAI",
+            "properties": {
+                "customSubDomainName": "[parameters('accounts_chris_openai_east_name')]",
+                "networkAcls": {
+                    "defaultAction": "Allow",
+                    "virtualNetworkRules": [],
+                    "ipRules": []
+                },
+                "publicNetworkAccess": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.CognitiveServices/accounts/deployments",
+            "apiVersion": "2023-10-01-preview",
+            "name": "[concat(parameters('accounts_chris_openai_east_name'), '/conversation-model')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_chris_openai_east_name'))]"
+            ],
+            "sku": {
+                "name": "Standard",
+                "capacity": 120
+            },
+            "properties": {
+                "model": {
+                    "format": "OpenAI",
+                    "name": "gpt-35-turbo",
+                    "version": "0301"
+                },
+                "versionUpgradeOption": "OnceNewDefaultVersionAvailable",
+                "currentCapacity": 120,
+                "raiPolicyName": "Microsoft.Default"
+            }
+        },
+        {
+            "type": "Microsoft.CognitiveServices/accounts/deployments",
+            "apiVersion": "2023-10-01-preview",
+            "name": "[concat(parameters('accounts_chris_openai_east_name'), '/gpt-35-turbo')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_chris_openai_east_name'))]"
+            ],
+            "sku": {
+                "name": "Standard",
+                "capacity": 120
+            },
+            "properties": {
+                "model": {
+                    "format": "OpenAI",
+                    "name": "gpt-35-turbo",
+                    "version": "0613"
+                },
+                "versionUpgradeOption": "OnceCurrentVersionExpired",
+                "currentCapacity": 120,
+                "raiPolicyName": "Microsoft.Default"
+            }
+        },
+        {
+            "type": "Microsoft.CognitiveServices/accounts/raiPolicies",
+            "apiVersion": "2023-10-01-preview",
+            "name": "[concat(parameters('accounts_chris_openai_east_name'), '/Microsoft.Default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('accounts_chris_openai_east_name'))]"
+            ],
+            "properties": {
+                "mode": "Blocking",
+                "contentFilters": [
+                    {
+                        "name": "Hate",
+                        "allowedContentLevel": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Hate",
+                        "allowedContentLevel": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Sexual",
+                        "allowedContentLevel": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Sexual",
+                        "allowedContentLevel": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Violence",
+                        "allowedContentLevel": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Violence",
+                        "allowedContentLevel": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    },
+                    {
+                        "name": "Selfharm",
+                        "allowedContentLevel": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Prompt"
+                    },
+                    {
+                        "name": "Selfharm",
+                        "allowedContentLevel": "Medium",
+                        "blocking": true,
+                        "enabled": true,
+                        "source": "Completion"
+                    }
+                ]
+            }
+        }
+    ]
+}

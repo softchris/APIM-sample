@@ -1,0 +1,79 @@
+#header {
+    background-color: black;
+    color: white;
+    padding: 10px;
+    text-align: center;
+}
+
+.input {
+    margin-top: 10px;
+    text-align: center;
+    padding:10px;
+}
+
+#inputBox {
+    width: 50%;
+    line-height: 1.5;
+    font-size: 16px;
+    display: block;
+    width:100%;
+}
+
+@media screen and (max-width: 600px) {
+    #inputBox {
+        width: 98%;
+    }
+}
+
+body {
+    font-family: Arial, sans-serif;
+}
+
+.response {
+    padding: 10px;
+    text-align: center;
+    background-color: #f2f2f2;
+    margin-top: 10px;
+    height: 300px;
+    overflow-y: scroll;
+    
+}
+
+.action {
+    margin: 10px 0;
+    display: flex;
+    flex-direction: row;
+    padding:10px;
+}
+
+/* each element should have rounded corners and 5px padding and border */
+.message {
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin: 5px 0;
+
+    box-shadow: 1px 1px 10px gray;
+    font-size: smaller;
+    max-width: 150px;
+    text-align: left;
+}
+
+.user .message {
+    background-color: #f2f2f2;
+    float: left;
+    margin-left: 40%;
+}
+
+.server .message {
+    background-color: #4CAF50;
+    color: white;
+    float: right;
+}
+
+
+
+
+#spinner {
+    margin-left: 20px;
+}
