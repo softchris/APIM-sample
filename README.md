@@ -33,9 +33,14 @@ This is a sample project that demonstrates how to use Azure API Management and A
 |Bicep     | Bicep files containing the needed information to deploy resources and configure them as needed        | [Link](./main.bicep) |
 
 
+## How does it work
+
+TODO, add architecture diagram and description
+
 ## Plan
 
  - [x] Create the app
+ - [] Integrate app to use subscriber secret and APIM URL.
  - [] Create either ARM or Bicep files
      - [x] create resources for APIM. 
      - [x] create resources for Azure Open AI instance.
@@ -46,7 +51,7 @@ This is a sample project that demonstrates how to use Azure API Management and A
 
 ## Demo
 
-![App running](app.gif)
+![App running](apim-sample.gif)
 
 ## Deploy to Azure
 
