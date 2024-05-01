@@ -43,6 +43,9 @@ resource cognitiveServicesAccount 'Microsoft.CognitiveServices/accounts@2023-10-
     }
     publicNetworkAccess: 'Enabled'
   }
+  identity: {
+    type: 'SystemAssigned'
+  }
 }
 
 // creating a deployment for the OpenAI model
@@ -153,6 +156,21 @@ resource apimService 'Microsoft.ApiManagement/service@2020-06-01-preview' = {
   dependsOn: [
     cognitiveServicesAccount
   ]
+}
+
+// adding Managed Identity connection between APIM and Azure Open AI by adding a role assignment
+
+// Cognitive Services API Management Contributor role ID 
+param roleDefinitionId string = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+
+resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: guid(apimService.id, roleDefinitionId)
+  scope: cognitiveServicesAccount
+  properties: {
+    roleDefinitionId: roleDefinitionId
+    principalType: 'ServicePrincipal'
+    principalId: apimService.identity.principalId
+  }
 }
 
 // named value that stores the Azure Open AI key
