@@ -2,6 +2,7 @@
 let express = require('express');
 let cors = require('cors');
 let port = process.env.PORT || 5000;
+let apiService = require('./apiService');
 
 const { message } = require('statuses');
 let app = express();
@@ -9,23 +10,21 @@ let app = express();
 app.use(cors());
 app.use(express.json());
 
-
-// generate a list with 10 different greetings
-let greetings = ['Hello', 'Hi', 'Hey', 'Hola', 'Bonjour', 'Ciao', 'Namaste', 'Salaam', 'Konnichiwa', 'Shalom'];
-
 // express add route
 app.get('/', function(req, res) {
-    res.json({ message: 'Hello World' });
+    res.json({ message: 'Welcome to this APIM sample, it calls Azure Open AI on POST /search' });
 });
 
 app.post('/search', function(req, res) {
     let message = req.body.message;
     console.log('[API] message: ' + message);
-
-    // Add a delay of 2 seconds before responding
     setTimeout(function() {
-        res.json({ message: greetings[Math.floor(Math.random() * greetings.length)]});
-    }, 2000);
+        apiService.getCompletion(message).then(response => {
+            res.json({ message: response });
+        }).catch(err => {
+            res.json({ message: err.message });
+        });
+    }, 1);
 });
 
 

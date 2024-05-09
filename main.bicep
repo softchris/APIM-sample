@@ -173,7 +173,7 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-prev
   }
 }
 
-// named value that stores the Azure Open AI key
+// REMOVE named value that stores the Azure Open AI key, using API key
 
 resource namedValue 'Microsoft.ApiManagement/service/namedValues@2020-06-01-preview' = {
   parent: apimService
@@ -219,10 +219,11 @@ var headerPolicyXml = '''
 <policies>
   <inbound>
     <base />
+    <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="managed-id-access-token" ignore-error="false" /> 
+<set-header name="Authorization" exists-action="override"> 
+    <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value> 
+</set-header> 
     <rate-limit-by-key calls="1000" renewal-period="3600" />
-    <set-header name="Authorization" exists-action="override">
-      <value>@("Bearer " + context.NamedValues["OAI_KEY"])</value>
-    </set-header>
   </inbound>
   <backend>
     <base />
