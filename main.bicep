@@ -173,18 +173,6 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-prev
   }
 }
 
-// REMOVE named value that stores the Azure Open AI key, using API key
-
-resource namedValue 'Microsoft.ApiManagement/service/namedValues@2020-06-01-preview' = {
-  parent: apimService
-  name: 'OAI_KEY'
-  properties: {
-    displayName: 'OAI_KEY'
-    value: OAI_KEY_VALUE
-    secret: true
-  }
-}
-
 // create API
 
 resource api 'Microsoft.ApiManagement/service/apis@2020-06-01-preview' = {
