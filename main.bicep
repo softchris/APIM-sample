@@ -1,41 +1,35 @@
 
 // parameters
 
-param apimServiceName string = 'myAPIMService'
-param location string = 'eastus'
 param publisherName string = 'myPublisherName'
 param publisherEmail string = 'myPublisherEmail@example.com'
 param apiName string = 'myAPI'
-param apiPath string = 'myAPIPath'
 
-// GetCompletion
-param operationName string = 'GetCompletion'
-param operationDisplayName string = 'GetCompletion'
-
-// is this correct?
-param operationUrlTemplate string = '/v1/engines/davinci-codex/completions'
-param OAI_KEY_VALUE string = 'change this to Azure Open AI key'
-
-
-param productName string
+param productName string = 'myProduct'
 param productDescription string
 
+param openai_first_endpoint_name string = 'change me'
+param openai_second_endpoint_name string = 'change me'
 
-param openai_first_endpoint string = 'change me'
-// param openai_second_endpoint string = 'change me'
+param location string = resourceGroup().location
+param resourceGroupName string = resourceGroup().name
 
+
+var serviceName = 'service${uniqueString(resourceGroup().id)}'
+
+// START, AI creating resources
 
 // FIRST: creating Azure Cognitive Services account for OpenAI
 
-resource cognitiveServicesAccount 'Microsoft.CognitiveServices/accounts@2023-10-01-preview' = {
-  name: openai_first_endpoint
+resource cognitiveServicesAccount1 'Microsoft.CognitiveServices/accounts@2023-10-01-preview' = {
+  name: openai_first_endpoint_name
   location: location
   sku: {
     name: 'S0'
   }
   kind: 'OpenAI'
   properties: {
-    customSubDomainName: openai_first_endpoint
+    customSubDomainName: openai_first_endpoint_name
     networkAcls: {
       defaultAction: 'Allow'
       virtualNetworkRules: []
@@ -48,11 +42,54 @@ resource cognitiveServicesAccount 'Microsoft.CognitiveServices/accounts@2023-10-
   }
 }
 
-// creating a deployment for the OpenAI model
+// SECOND: creating Azure Cognitive Services account for OpenAI
 
-resource cognitiveServicesAccountDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = {
-  parent: cognitiveServicesAccount
+resource cognitiveServicesAccount2 'Microsoft.CognitiveServices/accounts@2023-10-01-preview' = {
+  name: openai_second_endpoint_name
+  location: location
+  sku: {
+    name: 'S0'
+  }
+  kind: 'OpenAI'
+  properties: {
+    customSubDomainName: openai_second_endpoint_name
+    networkAcls: {
+      defaultAction: 'Allow'
+      virtualNetworkRules: []
+      ipRules: []
+    }
+    publicNetworkAccess: 'Enabled'
+  }
+  identity: {
+    type: 'SystemAssigned'
+  }
+}
+
+
+// creating 2 deployments for the OpenAI model
+
+resource cognitiveServicesAccountDeployment1 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = {
+  parent: cognitiveServicesAccount1
   name: 'conversation-model'
+  sku: {
+    name: 'Standard'
+    capacity: 120
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-35-turbo'
+      version: '0301'
+    }
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
+    currentCapacity: 120
+    raiPolicyName: 'Microsoft.Default'
+  }
+}
+
+resource cognitiveServicesAccountDeployment2 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = {
+  parent: cognitiveServicesAccount2
+  name: 'conversation-model-2'
   sku: {
     name: 'Standard'
     capacity: 120
@@ -72,7 +109,7 @@ resource cognitiveServicesAccountDeployment 'Microsoft.CognitiveServices/account
 // creating a resource for the RAI policy and assigning it to the Cognitive Services account
 
 resource cognitiveServicesAccountRaiPolicies 'Microsoft.CognitiveServices/accounts/raiPolicies@2023-10-01-preview' = {
-  parent: cognitiveServicesAccount
+  parent: cognitiveServicesAccount1
   name: 'Microsoft.Default'
   properties: {
     mode: 'Blocking'
@@ -137,10 +174,79 @@ resource cognitiveServicesAccountRaiPolicies 'Microsoft.CognitiveServices/accoun
   }
 }
 
+resource cognitiveServicesAccountRaiPolicies2 'Microsoft.CognitiveServices/accounts/raiPolicies@2023-10-01-preview' = {
+  parent: cognitiveServicesAccount2
+  name: 'Microsoft.Default'
+  properties: {
+    mode: 'Blocking'
+    contentFilters: [
+      {
+        name: 'Hate'
+        allowedContentLevel: 'Medium'
+        blocking: true
+        enabled: true
+        source: 'Prompt'
+      }
+      {
+        name: 'Hate'
+        allowedContentLevel: 'Medium'
+        blocking: true
+        enabled: true
+        source: 'Completion'
+      }
+      {
+        name: 'Sexual'
+        allowedContentLevel: 'Medium'
+        blocking: true
+        enabled: true
+        source: 'Prompt'
+      }
+      {
+        name: 'Sexual'
+        allowedContentLevel: 'Medium'
+        blocking: true
+        enabled: true
+        source: 'Completion'
+      }
+      {
+        name: 'Violence'
+        allowedContentLevel: 'Medium'
+        blocking: true
+        enabled: true
+        source: 'Prompt'
+      }
+      {
+        name: 'Violence'
+        allowedContentLevel: 'Medium'
+        blocking: true
+        enabled: true
+        source: 'Completion'
+      }
+      {
+        name: 'Selfharm'
+        allowedContentLevel: 'Medium'
+        blocking: true
+        enabled: true
+        source: 'Prompt'
+      }
+      {
+        name: 'Selfharm'
+        allowedContentLevel: 'Medium'
+        blocking: true
+        enabled: true
+        source: 'Completion'
+      }
+    ]
+  }
+}
+
+// END AI resources creation
+
+
 // create API Management service
 
 resource apimService 'Microsoft.ApiManagement/service@2020-06-01-preview' = {
-  name: apimServiceName
+  name: serviceName
   location: location
   sku: {
     name: 'Consumption'
@@ -153,19 +259,16 @@ resource apimService 'Microsoft.ApiManagement/service@2020-06-01-preview' = {
   identity: {
     type: 'SystemAssigned'
   }
-  dependsOn: [
-    cognitiveServicesAccount
-  ]
 }
 
 // adding Managed Identity connection between APIM and Azure Open AI by adding a role assignment
 
-// Cognitive Services API Management Contributor role ID 
+// TODO Cognitive Services API Management Contributor role ID 
 param roleDefinitionId string = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
 
 resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
   name: guid(apimService.id, roleDefinitionId)
-  scope: cognitiveServicesAccount
+  scope: cognitiveServicesAccount1
   properties: {
     roleDefinitionId: roleDefinitionId
     principalType: 'ServicePrincipal'
@@ -173,36 +276,137 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-prev
   }
 }
 
-// create API
+resource roleAssignment2 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: guid(apimService.id, roleDefinitionId)
+  scope: cognitiveServicesAccount2
+  properties: {
+    roleDefinitionId: roleDefinitionId
+    principalType: 'ServicePrincipal'
+    principalId: apimService.identity.principalId
+  }
+}
 
-resource api 'Microsoft.ApiManagement/service/apis@2020-06-01-preview' = {
+// POLICY1/BACKEND: create a backend that wires up "circuit breaker policy" to the Cognitive Services account
+resource backend1 'Microsoft.ApiManagement/service/backends@2023-03-01-preview' = {
+  name: 'myEndpoint/api'
+  properties: {
+    url: cognitiveServicesAccount1.properties.endpoint
+    protocol: 'https'
+    circuitBreaker: {
+      rules: [
+        {
+          failureCondition: {
+            count: 3
+            errorReasons: [
+              'Server errors'
+            ]
+            interval: 'P1D'
+            statusCodeRanges: [
+              {
+                min: 500
+                max: 599
+              }
+            ]
+          }
+          name: 'myBreakerRule'
+          tripDuration: 'PT1H'
+        }
+      ]
+    }
+   }
+ }
+
+ // POLICY/BACKEND: create a backend that wires up "circuit breaker policy" to the Cognitive Services account
+resource backend2 'Microsoft.ApiManagement/service/backends@2023-03-01-preview' = {
+  name: 'myEndpoint/api2'
+  properties: {
+    url: cognitiveServicesAccount2.properties.endpoint
+    protocol: 'https'
+    circuitBreaker: {
+      rules: [
+        {
+          failureCondition: {
+            count: 3
+            errorReasons: [
+              'Server errors'
+            ]
+            interval: 'P1D'
+            statusCodeRanges: [
+              {
+                min: 500
+                max: 599
+              }
+            ]
+          }
+          name: 'myBreakerRule'
+          tripDuration: 'PT1H'
+        }
+      ]
+    }
+   }
+ }
+
+ var subscriptionId = az.subscription().subscriptionId
+
+// POLICY, load balancing
+resource loadBalancing 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
+  name: 'myBackendPool/LoadBalancer'
+  properties: {
+    description: 'Load balancer for multiple backends'
+    type: 'Pool'
+    protocol: 'http'
+    url: 'https://example.com'
+    pool: {
+      services: [
+        {
+          id: '/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.ApiManagement/service/${serviceName}/backends/${backend1.id}'
+        }
+        {
+          id: '/subscriptions/${subscriptionId}/resourceGroups/${resourceGroupName}/providers/Microsoft.ApiManagement/service/${serviceName}/backends/${backend1.id}'
+        }
+      ]
+    }
+  }
+}
+
+// TODO, user needs to change the endpoints in the JSON file
+
+// API, creating the API
+resource api1 'Microsoft.ApiManagement/service/apis@2020-06-01-preview' = {
   parent: apimService
   name: apiName
   properties: {
     displayName: apiName
-    path: apiPath
-    protocols: [
-      'https'
-    ]
-    serviceUrl: cognitiveServicesAccount.properties.endpoint
+    apiType: 'http'
+    path: '${apiName}/openai'
+    format: 'openapi+json-link'
+    value: 'https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/preview/2024-03-01-preview/inference.json'
+    subscriptionKeyParameterNames: {
+      header: 'api-key'
+    }
   }
 }
 
+// TODO, user needs to change the endpoints in the JSON file
 
-// create operation, using POST method
-
-resource operation 'Microsoft.ApiManagement/service/apis/operations@2020-06-01-preview' = {
-  parent: api
-  name: operationName
+// API, creating the API
+resource api2 'Microsoft.ApiManagement/service/apis@2020-06-01-preview' = {
+  parent: apimService
+  name: apiName
   properties: {
-    displayName: operationDisplayName
-    method: 'POST'
-    urlTemplate: '${cognitiveServicesAccount.properties.endpoint}${operationUrlTemplate}'
-    responses: []
+    displayName: apiName
+    apiType: 'http'
+    path: '${apiName}/openai'
+    format: 'openapi+json-link'
+    value: 'https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/preview/2024-03-01-preview/inference.json'
+    subscriptionKeyParameterNames: {
+      header: 'api-key'
+    }
   }
 }
 
-// create policy that adds the Azure Open AI key to the Authorization header
+// POLICY DEFINITION
+
 var headerPolicyXml = '''
 <policies>
   <inbound>
@@ -225,8 +429,10 @@ var headerPolicyXml = '''
 </policies>
 '''
 
+// POLICY adding rate limit policy to APIs
+
 resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2020-06-01-preview' = {
-  parent: api
+  parent: api1
   name: 'policy'
   properties: {
     format: 'rawxml'
@@ -234,8 +440,16 @@ resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2020-06-01-pre
   }
 }
 
+resource apiPolicy2 'Microsoft.ApiManagement/service/apis/policies@2020-06-01-preview' = {
+  parent: api2
+  name: 'policy'
+  properties: {
+    format: 'rawxml'
+    value: headerPolicyXml
+  }
+}
 
-// declares a product instance that ensures that a subscription is required to access the API
+// PRODUCT declares a product instance that ensures that a subscription is required to access the API
 
 resource product 'Microsoft.ApiManagement/service/products@2020-06-01-preview' = {
   parent: apimService
@@ -247,11 +461,41 @@ resource product 'Microsoft.ApiManagement/service/products@2020-06-01-preview' =
   }
 }
 
-//  associate the API with the product
+// PRODUCT-API associate the API with the product
 
-resource productApi 'Microsoft.ApiManagement/service/products/apis@2020-06-01-preview' = {
+resource productApi1 'Microsoft.ApiManagement/service/products/apis@2020-06-01-preview' = {
   parent: product
-  name: api.name
+  name: api1.name
+}
+
+resource productApi2 'Microsoft.ApiManagement/service/products/apis@2020-06-01-preview' = {
+  parent: product
+  name: api2.name
+}
+
+// USER creating a user
+resource user 'Microsoft.ApiManagement/service/users@2020-06-01-preview' = {
+  parent: apimService
+  name: 'userName'
+  properties: {
+    firstName: 'User'
+    lastName: 'Name'
+    email: 'user@example.com'
+    state: 'active'
+  }
+}
+
+// SUBSCRIPTION creating a subscription
+
+resource subscription 'Microsoft.ApiManagement/service/subscriptions@2020-06-01-preview' = {
+  parent: apimService
+  name: 'subscriptionAIProduct'
+  properties: {
+    displayName: 'Subscribing to AI services'
+    state: 'active'
+    ownerId: user.id
+    scope: product.id
+  }
 }
 
 
