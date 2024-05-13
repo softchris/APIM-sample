@@ -15,12 +15,17 @@ app.get('/', function(req, res) {
     res.json({ message: 'Welcome to this APIM sample, it calls Azure Open AI on POST /search' });
 });
 
-app.post('/search', function(req, res) {
+
+app.post('/search',(req, res) => {
+
     let message = req.body.message;
     console.log('[API] message: ' + message);
     setTimeout(function() {
-        apiService.getCompletion(message).then(response => {
-            res.json({ message: response });
+        apiService.getChatCompletion(message).then(response => {
+            res.json({ 
+                message: response.text,
+                location: response.headers.get('x-ms-region') 
+            });
         }).catch(err => {
             res.json({ message: err.message });
         });

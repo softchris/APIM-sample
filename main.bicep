@@ -249,7 +249,7 @@ resource apimService 'Microsoft.ApiManagement/service@2020-06-01-preview' = {
   name: serviceName
   location: location
   sku: {
-    name: 'Consumption'
+    name: 'Developer' // TODO, 
     capacity: 0
   }
   properties: {
@@ -354,8 +354,8 @@ resource loadBalancing 'Microsoft.ApiManagement/service/backends@2023-05-01-prev
   properties: {
     description: 'Load balancer for multiple backends'
     type: 'Pool'
-    protocol: 'http'
-    url: 'https://example.com'
+    protocol: 'http' // TODO, maybe not required
+    url: 'https://example.com' // TODO, maybe not required
     pool: {
       services: [
         {
@@ -372,6 +372,9 @@ resource loadBalancing 'Microsoft.ApiManagement/service/backends@2023-05-01-prev
 // TODO, user needs to change the endpoints in the JSON file
 
 // API, creating the API
+
+// TODO, try deploy, endpoint resources should be used and override wha'ts in there
+
 resource api1 'Microsoft.ApiManagement/service/apis@2020-06-01-preview' = {
   parent: apimService
   name: apiName
@@ -387,35 +390,17 @@ resource api1 'Microsoft.ApiManagement/service/apis@2020-06-01-preview' = {
   }
 }
 
-// TODO, user needs to change the endpoints in the JSON file
-
-// API, creating the API
-resource api2 'Microsoft.ApiManagement/service/apis@2020-06-01-preview' = {
-  parent: apimService
-  name: apiName
-  properties: {
-    displayName: apiName
-    apiType: 'http'
-    path: '${apiName}/openai'
-    format: 'openapi+json-link'
-    value: 'https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/preview/2024-03-01-preview/inference.json'
-    subscriptionKeyParameterNames: {
-      header: 'api-key'
-    }
-  }
-}
-
-// POLICY DEFINITION
+// POLICY DEFINITION, see inbound section Andrei is sharing
 
 var headerPolicyXml = '''
 <policies>
   <inbound>
     <base />
+
     <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="managed-id-access-token" ignore-error="false" /> 
 <set-header name="Authorization" exists-action="override"> 
     <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value> 
 </set-header> 
-    <rate-limit-by-key calls="1000" renewal-period="3600" />
   </inbound>
   <backend>
     <base />
@@ -433,15 +418,6 @@ var headerPolicyXml = '''
 
 resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2020-06-01-preview' = {
   parent: api1
-  name: 'policy'
-  properties: {
-    format: 'rawxml'
-    value: headerPolicyXml
-  }
-}
-
-resource apiPolicy2 'Microsoft.ApiManagement/service/apis/policies@2020-06-01-preview' = {
-  parent: api2
   name: 'policy'
   properties: {
     format: 'rawxml'
@@ -468,11 +444,6 @@ resource productApi1 'Microsoft.ApiManagement/service/products/apis@2020-06-01-p
   name: api1.name
 }
 
-resource productApi2 'Microsoft.ApiManagement/service/products/apis@2020-06-01-preview' = {
-  parent: product
-  name: api2.name
-}
-
 // USER creating a user
 resource user 'Microsoft.ApiManagement/service/users@2020-06-01-preview' = {
   parent: apimService
@@ -485,7 +456,7 @@ resource user 'Microsoft.ApiManagement/service/users@2020-06-01-preview' = {
   }
 }
 
-// SUBSCRIPTION creating a subscription
+// SUBSCRIPTION creating a subscription, ID
 
 resource subscription 'Microsoft.ApiManagement/service/subscriptions@2020-06-01-preview' = {
   parent: apimService

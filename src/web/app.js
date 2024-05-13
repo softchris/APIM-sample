@@ -5,14 +5,12 @@ const responseArea = document.getElementById('responseArea');
 
 const spinner = document.getElementById('spinner');
 
-function addMessage(username, message) {
+function addMessage(username, message, location) {
     let div = document.createElement('div');
-    div.style.height = '20px';
-    div.style.margin = '20px';
-    let span = document.createElement('span');
-    span.classList.add('message');
-    span.innerText = `${username}: ${message}`;
-    div.appendChild(span);
+    let p = document.createElement('p');
+    div.classList.add('message');
+    p.innerText = `${username}: ${message} ${location ? ` \n SERVED BY: ${location}`: ''} `;
+    div.appendChild(p);
 
     // Add class based on username
     if (username === 'YOU') {
@@ -52,9 +50,9 @@ sendButton.addEventListener('click', async function() {
 
             let data = await response.json();
             console.log(data);
-
+            console.log("[SERVER RESPONSE] data", data);
             
-            addMessage('SERVER', data.message);
+            addMessage('SERVER', data.message, data.location);
             
             inputBox.value = '';
         } catch (err) {
