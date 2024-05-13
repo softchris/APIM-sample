@@ -315,7 +315,7 @@ To run this locally, you need to provide the below environment variables, you ca
 
 ## Demo
 
-![App running](apim-sample.gif)
+![App running](apim.png)
 
 ## Deploy to Azure
 
